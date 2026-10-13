@@ -174,7 +174,37 @@ jobs:
 
           $GITHUB_WORKSPACE/Scripts/Settings.sh
 
-          make defconfig -j$(nproc) && make clean -j$(nproc)
+          # Refresh package metadata after cloning custom packages.
+          rm -rf tmp
+
+          # Resolve the final configuration and stop immediately on failure.
+          make defconfig -j"$(nproc)" || exit 1
+
+          echo "================ Airoha NPU configuration ================"
+
+          # The package must remain enabled after defconfig.
+          if grep -qx 'CONFIG_PACKAGE_luci-app-airoha-npu=y' .config; then
+            echo "OK: luci-app-airoha-npu is enabled in the final .config"
+          else
+            echo "ERROR: luci-app-airoha-npu was not retained by defconfig."
+            echo "Package Makefile search:"
+            find package/luci-app-airoha-npu -maxdepth 3 -name Makefile -print 2>/dev/null || true
+            echo "Final config entry:"
+            grep -n 'luci-app-airoha-npu' .config || true
+            exit 1
+          fi
+
+          # Print hardware-interface settings for troubleshooting.
+          for CONFIG in CONFIG_KERNEL_DEBUG_FS CONFIG_KERNEL_DEVMEM CONFIG_BUSYBOX_DEFAULT_DEVMEM CONFIG_BUSYBOX_CONFIG_DEVMEM; do
+            if grep -qx "${CONFIG}=y" .config; then
+              echo "OK: ${CONFIG}=y"
+            else
+              echo "WARN: ${CONFIG} is not set to y"
+            fi
+          done
+
+          echo "==========================================================="
+          make clean -j"$(nproc)"
 
       - name: Download Packages
         if: env.WRT_TEST != 'true'
