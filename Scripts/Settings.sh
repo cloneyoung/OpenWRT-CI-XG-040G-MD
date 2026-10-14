@@ -38,8 +38,21 @@ sed -i "s/hostname='.*'/hostname='$WRT_NAME'/g" $CFG_FILE
 #配置文件修改
 echo "CONFIG_PACKAGE_luci=y" >> ./.config
 echo "CONFIG_LUCI_LANG_zh_Hans=y" >> ./.config
+
+# 启用所选 LuCI 主题
 echo "CONFIG_PACKAGE_luci-theme-$WRT_THEME=y" >> ./.config
-echo "CONFIG_PACKAGE_luci-app-$WRT_THEME-config=y" >> ./.config
+
+# 只有主题配置插件确实存在时才启用，避免为没有配置插件的主题生成无效选项
+THEME_CONFIG="luci-app-${WRT_THEME}-config"
+THEME_CONFIG_MAKEFILE=$(find ./package ./feeds/luci ./feeds/packages \
+  -type f -path "*/${THEME_CONFIG}/Makefile" -print -quit 2>/dev/null)
+
+if [ -n "$THEME_CONFIG_MAKEFILE" ]; then
+  echo "CONFIG_PACKAGE_${THEME_CONFIG}=y" >> ./.config
+  echo "主题配置插件已找到：$THEME_CONFIG_MAKEFILE"
+else
+  echo "主题 $WRT_THEME 没有对应的 $THEME_CONFIG，跳过配置插件"
+fi
 
 #引入私有扩展配置
 if [ -f "$GITHUB_WORKSPACE/Config/PRIVATE.txt" ]; then
