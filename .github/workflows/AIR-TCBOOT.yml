@@ -6,9 +6,9 @@ name: AIR-TCBOOT
 
 #CI计划
 on:
-  #定时检查上游（每 6 小时，UTC）
+  #定时检查上游（每 7 天一次：周日 18:00 UTC / 北京时间周一 02:00）
   schedule:
-    - cron: "0 */6 * * *"
+    - cron: "0 18 * * 0"
   #手动编译
   workflow_dispatch:
     inputs:
@@ -25,6 +25,7 @@ on:
 #CI权限
 permissions:
   contents: write        # 收尾 job 需要 push .upstream-sha
+  actions: write         # Update Caches 需调用 gh cache delete，缺此权限会 HTTP 403
 
 #上游监控的比对目标
 env:
